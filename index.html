@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Merkat — Chat (Beam)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  @property --beamAngle { syntax:'<angle>'; initial-value:0deg; inherits:false; }
+  :root{
+    --cream:#f6f3ec; --cream2:#f1ece1; --ink:#1b1a17; --muted:#8a8578; --faint:#a8a293;
+    --gold:#c69a4e; --gold-deep:#a97f36; --hair:rgba(27,26,23,.10); --hair2:rgba(27,26,23,.06);
+    --card:#fffdf8;
+    /* sunset beam stops (on-brand: gold → coral → pink → light gold) */
+    --s1:#c69a4e; --s2:#e8a15c; --s3:#ff8a5c; --s4:#ff6f91; --s5:#f6c667;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--cream);color:var(--ink);font-family:'Inter',-apple-system,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;display:flex;min-height:100vh}
+  .serif{font-family:'Instrument Serif',Georgia,serif;font-weight:400}
+  .app{display:flex;width:100%}
+
+  /* ---- left rail ---- */
+  .rail{width:60px;flex:0 0 60px;background:var(--cream2);border-right:1px solid var(--hair);
+    display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:6px}
+  .rail .logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(160deg,#d9ad5e,#b6863a);
+    display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.15);margin-bottom:8px}
+  .rail .logo svg{width:20px;height:20px}
+  .ri{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    color:#8f8a7d;cursor:pointer;transition:.18s}
+  .ri:hover{background:rgba(27,26,23,.05);color:var(--ink)}
+  .ri.active{color:var(--gold-deep);background:rgba(198,154,78,.12)}
+  .ri svg{width:19px;height:19px}
+  .ri.dash{border:1.4px dashed rgba(27,26,23,.22);color:#b0aa9c}
+  .rail .spring{flex:1}
+
+  /* ---- center column ---- */
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;overflow-y:auto}
+  .col{width:100%;max-width:660px;padding:76px 24px 80px;display:flex;flex-direction:column;align-items:center}
+  .datelbl{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:20px}
+  .greet{font-size:40px;line-height:1.12;text-align:center;letter-spacing:.005em;margin-bottom:34px;text-wrap:balance}
+  .greet em{font-style:italic;color:var(--muted)}
+
+  /* ---- border-beam input (THE chat effect — kept) ---- */
+  .beam{position:relative;width:100%;border-radius:18px;padding:1.2px;isolation:isolate}
+  .beam::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.2px;z-index:0;
+    background:conic-gradient(from var(--beamAngle),
+      transparent 0deg, transparent 75deg,
+      var(--s5) 108deg, var(--s3) 140deg, var(--s4) 165deg, var(--s1) 200deg,
+      transparent 235deg, transparent 360deg);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude;
+    animation:spin 7s linear infinite; opacity:.55;}
+  .beam::after{content:'';position:absolute;inset:-1px;border-radius:19px;z-index:-1;
+    background:conic-gradient(from var(--beamAngle),
+      transparent 0deg, transparent 90deg,
+      var(--s3) 145deg, var(--s4) 172deg, var(--s1) 205deg,
+      transparent 240deg, transparent 360deg);
+    filter:blur(9px);opacity:.14;animation:spin 7s linear infinite;}
+  @keyframes spin{to{--beamAngle:360deg}}
+  .beam-inner{position:relative;z-index:1;background:var(--card);border-radius:16.5px;
+    padding:16px 16px 16px 18px;display:flex;align-items:center;gap:12px;
+    box-shadow:0 6px 22px -12px rgba(120,90,40,.25)}
+  .spark{color:var(--gold);font-size:18px;flex:0 0 auto}
+  .beam-inner input{flex:1;border:none;background:transparent;font-family:inherit;font-size:1.02rem;color:var(--ink);outline:none}
+  .beam-inner input::placeholder{color:#9a958a}
+  .sendbtn{position:relative;overflow:hidden;width:38px;height:38px;border-radius:50%;flex:0 0 auto;border:none;cursor:pointer;
+    background:linear-gradient(160deg,#d9ad5e,#b6863a);display:flex;align-items:center;justify-content:center;
+    box-shadow:0 3px 8px -2px rgba(169,127,54,.5)}
+  .sendbtn svg{position:relative;z-index:2;width:17px;height:17px;color:#fff}
+  /* subtle metallic sheen — a soft glint sweeps across as the beam passes the right side (MetalFx-style, low strength) */
+  .sendbtn::after{content:'';position:absolute;inset:-2px;z-index:1;border-radius:50%;pointer-events:none;
+    background:linear-gradient(115deg,transparent 40%,rgba(255,247,232,.45) 50%,transparent 60%);
+    transform:translateX(-130%);animation:sheen 7s linear infinite}
+  @keyframes sheen{
+    0%,72%{transform:translateX(-130%)}
+    84%,100%{transform:translateX(130%)}}
+
+  /* ---- status line w/ thinking orb (size 64) ---- */
+  .status{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:20px;color:var(--muted);font-size:.9rem}
+  .status .st{color:#7a746a;font-weight:600;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase}
+  /* thinking-orb mount wrapper */
+  .orb{line-height:0;display:inline-flex;align-items:center;justify-content:center}
+  .orb.hero{min-width:64px;min-height:64px}
+
+  /* ---- suggestion pills ---- */
+  .sugs{display:flex;flex-direction:column;align-items:center;gap:11px;margin-top:32px;width:100%}
+  .sug{display:inline-flex;align-items:baseline;gap:9px;padding:12px 20px;border-radius:24px;
+    background:var(--card);border:1px solid var(--hair);cursor:pointer;position:relative;transition:.18s;
+    box-shadow:0 2px 8px -6px rgba(0,0,0,.2)}
+  .sug:hover{border-color:transparent;transform:translateY(-1px)}
+  .sug .t{font-weight:600;font-size:.96rem;color:var(--ink)}
+  .sug .d{font-size:.86rem;color:var(--faint)}
+  /* hover beam on pills (line variant, subtle) — same chat effect, kept */
+  .sug::before{content:'';position:absolute;inset:0;border-radius:24px;padding:1.3px;opacity:0;transition:opacity .2s;
+    background:conic-gradient(from var(--beamAngle),transparent 0 60deg,var(--s3) 120deg,var(--s4) 160deg,var(--s1) 200deg,transparent 250deg 360deg);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+    animation:spin 4s linear infinite;}
+  .sug:hover::before{opacity:.5}
+
+  .divider{display:flex;align-items:center;gap:14px;width:100%;margin:44px 0 30px;color:var(--gold);opacity:.6}
+  .divider .ln{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--hair),transparent)}
+
+  /* ---- Lately feed ---- */
+  .lately{width:100%}
+  .lately h3{font-family:'Instrument Serif',serif;font-size:1.7rem;margin-bottom:4px}
+  .lately .sub{color:var(--faint);font-size:.9rem;margin-bottom:20px}
+  .row{display:flex;align-items:center;gap:13px;padding:14px 4px;border-bottom:1px solid var(--hair2)}
+  .av{width:38px;height:38px;border-radius:50%;flex:0 0 auto;background:linear-gradient(160deg,#4a4640,#2a2723);
+    display:flex;align-items:center;justify-content:center;color:#d9ad5e;font-size:16px}
+  .row .who{font-weight:600;font-size:.96rem}
+  .row .act{color:var(--muted);font-size:.9rem}
+  .row .rgt{margin-left:auto;display:flex;align-items:center}
+
+  @media (max-width:640px){
+    .col{padding:54px 18px 70px} .greet{font-size:32px} .rail{display:none}
+    .sug{width:100%;justify-content:flex-start}
+  }
+  .note{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-size:.72rem;color:var(--faint);
+    background:rgba(255,253,248,.92);border:1px solid var(--hair);border-radius:20px;padding:6px 14px;backdrop-filter:blur(6px);
+    max-width:calc(100% - 24px);text-align:center;transition:opacity .6s;z-index:50}
+  .note.hide{opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- left rail -->
+  <div class="rail">
+    <div class="logo"><svg viewBox="0 0 24 24" fill="none"><path d="M8 20c0-3 1-5 1-8 0-2-1-3-1-5 0-1.5 1.2-3 3-3s3 1.5 3 3c0 2-1 3-1 5 0 3 1 5 1 8" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="10.4" cy="5.5" r=".9" fill="#fff"/><circle cx="13.6" cy="5.5" r=".9" fill="#fff"/></svg></div>
+    <div class="ri">›</div>
+    <div class="ri active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.38 8.38 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z"/></svg></div>
+    <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+    <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg></div>
+    <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>
+    <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></div>
+    <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>
+    <div class="spring"></div>
+    <div class="av" style="width:32px;height:32px;font-size:13px">R</div>
+    <div class="ri dash">+</div>
+    <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h6l2 2h10v9a2 2 0 0 1-2 2H3z"/></svg></div>
+  </div>
+
+  <!-- center -->
+  <div class="main">
+    <div class="col">
+      <div class="datelbl">Thursday, July 23</div>
+      <h1 class="greet serif">Good afternoon, Mohammadreza — <em>what should we get done?</em></h1>
+
+      <!-- border-beam input (kept) -->
+      <div class="beam">
+        <div class="beam-inner">
+          <span class="spark">✦</span>
+          <input placeholder="Ask your clan to do something…">
+          <button class="sendbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+        </div>
+      </div>
+
+      <!-- status: thinking orb (size 64) + label -->
+      <div class="status">
+        <span class="orb hero" id="orb-status"></span>
+        <span class="st" id="status-label">Listening</span>
+      </div>
+
+      <!-- suggestions -->
+      <div class="sugs">
+        <div class="sug"><span class="t">Plan my day</span><span class="d">Calendar, inbox, and priorities</span></div>
+        <div class="sug"><span class="t">Draft an email or reply</span><span class="d">I'll write it, you approve</span></div>
+        <div class="sug"><span class="t">Research something for me</span><span class="d">Dig in and report back</span></div>
+        <div class="sug"><span class="t">Catch me up</span><span class="d">What's happened recently</span></div>
+        <div class="sug"><span class="t">Set up a scheduled task</span><span class="d">Recurring work on autopilot</span></div>
+        <div class="sug"><span class="t">What can you do?</span><span class="d">See a few examples</span></div>
+      </div>
+
+      <div class="divider"><span class="ln"></span>✦<span class="ln"></span></div>
+
+      <!-- Lately -->
+      <div class="lately">
+        <h3 class="serif">Lately</h3>
+        <div class="sub">Your clan and what they've been up to.</div>
+
+        <div class="row">
+          <div class="av">◕</div>
+          <div><div class="who">Footy <span style="color:var(--faint);font-weight:400;font-size:.85rem">· booking agent</span></div><div class="act">Searching Fresha for open slots this week…</div></div>
+          <div class="rgt"><span class="orb" data-state="searching"></span></div>
+        </div>
+        <div class="row">
+          <div class="av">✎</div>
+          <div><div class="who">Scribe <span style="color:var(--faint);font-weight:400;font-size:.85rem">· inbox agent</span></div><div class="act">Composing a reply to 3 new enquiries…</div></div>
+          <div class="rgt"><span class="orb" data-state="shaping"></span></div>
+        </div>
+        <div class="row">
+          <div class="av">⚘</div>
+          <div><div class="who">Ledger <span style="color:var(--faint);font-weight:400;font-size:.85rem">· books agent</span></div><div class="act">Working through last month's receipts…</div></div>
+          <div class="rgt"><span class="orb" data-state="solving"></span></div>
+        </div>
+        <div class="row">
+          <div class="av">✦</div>
+          <div><div class="who">Atlas <span style="color:var(--faint);font-weight:400;font-size:.85rem">· research agent</span></div><div class="act">Solving: which 3 leads to call first.</div></div>
+          <div class="rgt"><span class="orb" data-state="listening"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note">Merkat concept — thinking-orbs (size 64) + sunset border-beam · send button catches the beam (subtle)</div>
+
+<script type="module">
+/* thinking-orbs (Jakub Antalik) at Reza's specs: size 64, speed 0.45 (shaping 0.65), no theme override (matches the demo). */
+import { createElement as h } from "https://esm.sh/react@18.3.1";
+import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
+import { ThinkingOrb } from "https://esm.sh/thinking-orbs@0.1.1?deps=react@18.3.1,react-dom@18.3.1";
+
+const cap = s => s[0].toUpperCase() + s.slice(1);
+const speedFor = s => s === 'shaping' ? 0.65 : 0.45;
+/* theme:'light' = dark high-contrast ink, reads clearly on the cream bg */
+const THEME = 'light';
+
+/* hero status orb (size 64) — STATE-DRIVEN: an orb only shows when the operator
+   is actually doing something. idle = quiet, no orb. */
+const heroStates = ['idle','searching','solving','shaping','listening','idle'];
+const heroRoot = createRoot(document.getElementById('orb-status'));
+const label = document.getElementById('status-label');
+let hi = 0;
+function renderHero(){
+  const st = heroStates[hi];
+  if (st === 'idle'){ heroRoot.render(null); label.textContent = 'Idle'; }
+  else { heroRoot.render(h(ThinkingOrb, { state: st, size: 64, speed: speedFor(st), theme: THEME })); label.textContent = cap(st); }
+}
+renderHero();
+setInterval(() => { hi = (hi+1) % heroStates.length; renderHero(); }, 3200);
+
+/* lately orbs — each fixed to its agent's ACTIVE state (all four are mid-task here) */
+document.querySelectorAll('.orb[data-state]').forEach(el => {
+  const st = el.dataset.state;
+  createRoot(el).render(h(ThinkingOrb, { state: st, size: 64, speed: speedFor(st), theme: THEME }));
+});
+
+setTimeout(() => { const n = document.querySelector('.note'); if (n) n.classList.add('hide'); }, 5500);
+</script>
+</body>
+</html>
